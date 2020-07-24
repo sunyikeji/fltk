@@ -146,6 +146,7 @@ void fl_draw(
 
 //hhbb add
   const char *str2 = str;
+#ifdef _WIN32
   if (str) {
 #ifdef DEBUG
     printf("fl_draw1: [%s][%d]\n", str, strlen(str)); //debug
@@ -160,6 +161,7 @@ void fl_draw(
       }
     }
   }
+#endif
 //hhbb end
 
   // count how many lines and put the last one into the buffer:
