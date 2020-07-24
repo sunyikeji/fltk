@@ -205,6 +205,8 @@ FL_EXPORT void fl_make_path_for_file( const char *path );
 /* OD: recursively create a path in the file system */
 FL_EXPORT char fl_make_path( const char *path );
 
+// hhbb add ÅÐ¶Ï×Ö·û´®ÊÇ·ñGBK±àÂë
+FL_EXPORT int fl_gbktest(const char* str);
 
 /** @} */
 

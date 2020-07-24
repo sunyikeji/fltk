@@ -144,6 +144,24 @@ void fl_draw(
   char symbol[2][255], *symptr;
   int symwidth[2], symoffset, symtotal, imgtotal;
 
+//hhbb add
+  const char *str2 = str;
+  if (str) {
+#ifdef DEBUG
+    printf("fl_draw1: [%s][%d]\n", str, strlen(str)); //debug
+#endif
+    if (fl_gbktest(str)) { //判断是否有GBK编码中文字符
+      if (fl_utf8test(str,strlen(str)) <= 1) { //判断是否UTF-8编码
+        str2 = fl_locale_to_utf8(str, strlen(str), 936); //转换中文编码GBK到UTF-8
+#ifdef DEBUG
+        printf("fl_draw2: [%s][%d]\n\n", str2, strlen(str2)); //debug
+        fflush(stdout); //debug
+#endif
+      }
+    }
+  }
+//hhbb end
+
   // count how many lines and put the last one into the buffer:
   int lines;
   double width;
@@ -158,17 +176,17 @@ void fl_draw(
   symwidth[1]  = 0;
 
   if (draw_symbols) {
-    if (str && str[0] == '@' && str[1] && str[1] != '@') {
+    if (str2 && str2[0] == '@' && str2[1] && str2[1] != '@') {
       // Start with a symbol...
       for (symptr = symbol[0];
-           *str && !isspace(*str) && symptr < (symbol[0] + sizeof(symbol[0]) - 1);
-           *symptr++ = *str++) {/*empty*/}
+           *str2 && !isspace(*str2) && symptr < (symbol[0] + sizeof(symbol[0]) - 1);
+           *symptr++ = *str2++) {/*empty*/}
       *symptr = '\0';
-      if (isspace(*str)) str++;
+      if (isspace(*str2)) str2++;
       symwidth[0] = (w < h ? w : h);
     }
 
-    if (str && (p = strrchr(str, '@')) != NULL && p > (str + 1) && p[-1] != '@') {
+    if (str2 && (p = strrchr(str2, '@')) != NULL && p > (str2 + 1) && p[-1] != '@') {
       strlcpy(symbol[1], p, sizeof(symbol[1]));
       symwidth[1] = (w < h ? w : h);
     }
@@ -180,8 +198,8 @@ void fl_draw(
   int strw = 0;
   int strh;
 
-  if (str) {
-    for (p = str, lines=0; p;) {
+  if (str2) {
+    for (p = str2, lines=0; p;) {
       e = expand_text_(p, linebuf, 0, w - symtotal - imgtotal, buflen, width,
                          align&FL_ALIGN_WRAP, draw_symbols);
       if (strw<width) strw = (int)width;
@@ -246,9 +264,9 @@ void fl_draw(
   }
 
   // now draw all the lines:
-  if (str) {
+  if (str2) {
     int desc = fl_descent();
-    for (p=str; ; ypos += height) {
+    for (p=str2; ; ypos += height) {
       if (lines>1) e = expand_text_(p, linebuf, 0, w - symtotal - imgtotal, buflen,
                                 width, align&FL_ALIGN_WRAP, draw_symbols);
       else e = "";

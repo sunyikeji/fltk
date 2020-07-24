@@ -676,7 +676,7 @@ void BlockWindow::draw() {
         // Show sample waveform...
         short *sample_ptr;
 
-        for (i = 0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
           fl_color(FL_RED + i);
           fl_begin_line();
           for (j = 0, sample_ptr = sound_->sample_data + i;

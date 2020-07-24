@@ -1356,4 +1356,59 @@ unsigned fl_utf8from_mb(char* dst, unsigned dstlen, const char* src, unsigned sr
   return Fl::system_driver()->utf8from_mb(dst, dstlen, src, srclen);
 }
 
+
+//hhbb add 判断字符串是否GBK编码的中文字符
+int fl_gbktest(const char* str)
+{
+    unsigned int nBytes = 0;  //GBK可用1-2个字节编码,中文两个 ,英文一个 
+    unsigned char chr = *str;
+    bool bAllAscii = true; //如果全部都是ASCII,  
+ 
+    for (unsigned int i = 0; str[i] != '\0'; ++i)
+    {
+        chr = *(str + i);
+        if ((chr & 0x80) != 0 && nBytes == 0)
+        {// 判断是否ASCII编码,如果不是,说明有可能是GBK
+            bAllAscii = false;
+        }
+ 
+        if (nBytes == 0) 
+        {
+            if (chr >= 0x80) 
+            {
+                if (chr >= 0x81 && chr <= 0xFE)
+                {
+                    nBytes = +2;
+                }
+                else
+                {
+                    return 0;
+                }
+                nBytes--;
+            }
+        }
+        else
+        {
+            if (chr < 0x40 || chr>0xFE)
+            {
+                return 0;
+            }
+            nBytes--;
+        }//else end
+    }
+ 
+    if (nBytes != 0)  
+    {   //违返规则 
+        return 0;
+    }
+ 
+    if (bAllAscii)
+    { //如果全部都是ASCII, 则没有中文字符
+        return 0;
+    }
+ 
+    return 1;
+}
+//hhbb end
+
 /** @} */
