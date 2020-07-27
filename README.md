@@ -13,3 +13,6 @@
 
     For more information see README.txt:
     https://github.com/fltk/fltk/blob/master/README.txt
+    
+## 优化用了在Windows系统下GBK编码汉字的显示
+
