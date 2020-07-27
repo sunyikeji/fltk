@@ -162,11 +162,29 @@ char *Fl_Text_Buffer::text() const {
  */
 void Fl_Text_Buffer::text(const char *t)
 {
-  IS_UTF8_ALIGNED(t)
-
+    IS_UTF8_ALIGNED(t)
+    
   // if t is null then substitute it with an empty string
   // then don't return so that internal cleanup can happen
   if (!t) t="";
+
+ //hhbb add
+  const char *t2 = t;
+#ifdef _WIN32
+    if (fl_gbktest(t)) { //判断是否有GBK编码中文字符
+#ifdef DEBUG
+        printf("Fl_Text_Buffer::text2: [%s][%d]\n\n", t, strlen(t)); //debug
+#endif    
+      if (fl_utf8test(t,strlen(t)) <= 2) { //判断是否UTF-8编码
+        t2 = fl_locale_to_utf8(t, strlen(t), 936); //转换中文编码GBK到UTF-8
+#ifdef DEBUG
+        printf("Fl_Text_Buffer::text3: [%s][%d]\n\n", t2, strlen(t2)); //debug
+        fflush(stdout); //debug
+#endif
+      }
+    }
+#endif
+//hhbb end
 
   call_predelete_callbacks(0, length());
 
@@ -176,12 +194,12 @@ void Fl_Text_Buffer::text(const char *t)
   free((void *) mBuf);
 
   /* Start a new buffer with a gap of mPreferredGapSize at the end */
-  int insertedLength = (int) strlen(t);
+  int insertedLength = (int) strlen(t2);
   mBuf = (char *) malloc(insertedLength + mPreferredGapSize);
   mLength = insertedLength;
   mGapStart = insertedLength;
   mGapEnd = mGapStart + mPreferredGapSize;
-  memcpy(mBuf, t, insertedLength);
+  memcpy(mBuf, t2, insertedLength);
 
   /* Zero all of the existing selections */
   update_selections(0, deletedLength, 0);

@@ -1356,7 +1356,7 @@ unsigned fl_utf8from_mb(char* dst, unsigned dstlen, const char* src, unsigned sr
   return Fl::system_driver()->utf8from_mb(dst, dstlen, src, srclen);
 }
 
-
+//由于汉字gbk和utf8编码有交集，所以对于2个字节的汉字utf8编码也会判断成gbk编码
 //hhbb add 判断字符串是否GBK编码的中文字符
 int fl_gbktest(const char* str)
 {

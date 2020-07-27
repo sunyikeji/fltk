@@ -151,11 +151,14 @@ void fl_draw(
 #ifdef DEBUG
     printf("fl_draw1: [%s][%d]\n", str, strlen(str)); //debug
 #endif
-    if (fl_gbktest(str)) { //ÅĞ¶ÏÊÇ·ñÓĞGBK±àÂëÖĞÎÄ×Ö·û
-      if (fl_utf8test(str,strlen(str)) <= 1) { //ÅĞ¶ÏÊÇ·ñUTF-8±àÂë
-        str2 = fl_locale_to_utf8(str, strlen(str), 936); //×ª»»ÖĞÎÄ±àÂëGBKµ½UTF-8
+    if (fl_gbktest(str)) { //ï¿½Ğ¶ï¿½ï¿½Ç·ï¿½ï¿½ï¿½GBKï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½
 #ifdef DEBUG
-        printf("fl_draw2: [%s][%d]\n\n", str2, strlen(str2)); //debug
+        printf("fl_draw2: [%s][%d]\n", str, strlen(str)); //debug
+#endif    
+      if (fl_utf8test(str,strlen(str)) <= 2) { //ï¿½Ğ¶ï¿½ï¿½Ç·ï¿½UTF-8ï¿½ï¿½ï¿½ï¿½
+        str2 = fl_locale_to_utf8(str, strlen(str), 936); //×ªï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½ï¿½ï¿½GBKï¿½ï¿½UTF-8
+#ifdef DEBUG
+        printf("fl_draw3: [%s][%d]\n\n", str2, strlen(str2)); //debug
         fflush(stdout); //debug
 #endif
       }
