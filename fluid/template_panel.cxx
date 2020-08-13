@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../src/flstring.h"
+#include <FL/fl_string.h>
 #include <errno.h>
 #include <FL/filename.H>
 #include <FL/fl_ask.H>
@@ -257,7 +258,7 @@ void template_load() {
 
       // Add the template to the browser...
       snprintf(filename, sizeof(filename), "%s/%s", path, files[i]->d_name);
-      template_browser->add(name, strdup(filename));
+      template_browser->add(name, fl_strdup(filename));
     }
 
     free(files[i]);

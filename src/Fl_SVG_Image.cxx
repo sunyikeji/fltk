@@ -21,6 +21,7 @@
 #include <FL/Fl_SVG_Image.H>
 #include <FL/fl_utf8.h>
 #include <FL/fl_draw.H>
+#include <FL/fl_string.h>
 #include "Fl_Screen_Driver.H"
 #include <stdio.h>
 #include <stdlib.h>
@@ -152,7 +153,7 @@ void Fl_SVG_Image::init_(const char *filename, const char *in_filedata, Fl_SVG_I
     if (!filedata) ld(ERR_FILE_ACCESS);
   } else {
     // XXX: Make internal copy -- nsvgParse() modifies filedata during parsing (!)
-    filedata = in_filedata ? strdup(in_filedata) : NULL;
+    filedata = in_filedata ? fl_strdup(in_filedata) : NULL;
   }
   if (filedata) {
     counted_svg_image_->svg_image = nsvgParse(filedata, "px", 96);
@@ -235,18 +236,18 @@ void Fl_SVG_Image::resize(int width, int height) {
 
 
 void Fl_SVG_Image::draw(int X, int Y, int W, int H, int cx, int cy) {
-  float f = fl_graphics_driver->scale();
-  if (fl_graphics_driver->has_feature(Fl_Graphics_Driver::PRINTER)) f *= 2;
-  else f *= Fl::screen_driver()->retina_factor();
-  int w1 = w(), h1 = h();
-  /* When f > 1, there may be several pixels per FLTK unit in an area
+  /* There may be several pixels per FLTK unit in an area
    of size w() x h() of the display. This occurs, e.g., with Apple retina displays
    and when the display is rescaled.
    The SVG is rasterized to the area dimension in pixels. The image is then drawn
    scaled to its size expressed in FLTK units. With this procedure,
    the SVG image is drawn using the full resolution of the display.
    */
-  resize(f*w(), f*h());
+  int w1 = w(), h1 = h();
+  int f = fl_graphics_driver->has_feature(Fl_Graphics_Driver::PRINTER) ? 2 : 1;
+  int w2 = f*w(), h2 = f*h();
+  fl_graphics_driver->cache_size(w2, h2);
+  resize(w2, h2);
   scale(w1, h1, 0, 1);
   Fl_RGB_Image::draw(X, Y, W, H, cx, cy);
 }

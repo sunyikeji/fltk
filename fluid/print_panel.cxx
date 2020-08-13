@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../src/flstring.h"
+#include <FL/fl_string.h>
 #include <FL/Fl_Preferences.H>
 extern Fl_Preferences fluid_prefs;
 
@@ -531,7 +532,7 @@ void print_load() {
         }
         *qptr = '\0';
 
-        print_choice->add(qname, 0, 0, (void *)strdup(name), 0);
+        print_choice->add(qname, 0, 0, (void *)fl_strdup(name), 0);
       } else if (!strncmp(line, "system default destination: ", 28)) {
         if (sscanf(line + 28, "%s", defname) != 1) defname[0] = '\0';
       }

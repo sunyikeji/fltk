@@ -79,6 +79,7 @@
 #include <FL/Fl.H>
 #include <FL/platform.H>
 #include <FL/fl_utf8.h> // for fl_utf8toUtf16()
+#include <FL/fl_string.h> // fl_strdup()
 
 Fl_Fontdesc* fl_fonts = NULL;
 
@@ -618,15 +619,22 @@ void Fl_Quartz_Graphics_Driver::ADD_SUFFIX(draw, _CoreText)(const char *str, int
   CFRelease(ctline);
 }
 
+// Skip over bold/italic/oblique qualifiers part of PostScript font names
+// Example:
+//      input: '-Regular_Light-Condensed'
+//     return: '_Light-Condensed'
+//
 static char *skip(char *p, int& derived)
 {
-  if (memcmp(p, "-BoldItalic", 11) == 0) { p += 11; derived = 3; }
-  else if (memcmp(p, "-BoldOblique", 12) == 0) { p += 12; derived = 3; }
-  else if (memcmp(p, "-Bold", 5) == 0) {p += 5; derived = 1; }
-  else if (memcmp(p, "-Italic", 7) == 0) {p += 7; derived = 2; }
-  else if (memcmp(p, "-Oblique", 8) == 0) {p += 8; derived = 2; }
-  else if (memcmp(p, "-Regular", 8) == 0) {p += 8; }
-  else if (memcmp(p, "-Roman", 6) == 0) {p += 6; }
+  //                  0    5    10
+  //                  |    |    |
+  if      (strncmp(p, "-BoldItalic",  11) == 0) { p += 11; derived = 3; }
+  else if (strncmp(p, "-BoldOblique", 12) == 0) { p += 12; derived = 3; }
+  else if (strncmp(p, "-Bold",         5) == 0) { p +=  5; derived = 1; }
+  else if (strncmp(p, "-Italic",       7) == 0) { p +=  7; derived = 2; }
+  else if (strncmp(p, "-Oblique",      8) == 0) { p +=  8; derived = 2; }
+  else if (strncmp(p, "-Regular",      8) == 0) { p +=  8; }
+  else if (strncmp(p, "-Roman",        6) == 0) { p +=  6; }
   return p;
 }
 
@@ -675,7 +683,7 @@ Fl_Font Fl_Quartz_Graphics_Driver::ADD_SUFFIX(set_fonts, _CoreText)(const char* 
     CFRelease(font);
     static char fname[200];
     CFStringGetCString(cfname, fname, sizeof(fname), kCFStringEncodingUTF8);
-    tabfontnames[i] = strdup(fname); // never free'ed
+    tabfontnames[i] = fl_strdup(fname); // never free'ed
     CFRelease(cfname);
   }
   CFRelease(arrayref);
@@ -862,7 +870,7 @@ Fl_Font Fl_Quartz_Graphics_Driver::ADD_SUFFIX(set_fonts, _ATSU)(const char* xsta
       oName[511] = 0;
     else
       oName[actualLength] = 0;
-    Fl::set_font((Fl_Font)(fl_free_font++), strdup(oName));
+    Fl::set_font((Fl_Font)(fl_free_font++), fl_strdup(oName));
     //  free(oName);
   }
   free(oFontIDs);

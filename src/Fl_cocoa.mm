@@ -30,6 +30,7 @@ extern "C" {
 #include <FL/Fl_Printer.H>
 #include <FL/fl_draw.H>
 #include <FL/Fl_Rect.H>
+#include <FL/fl_string.h>
 #include "drivers/Quartz/Fl_Quartz_Graphics_Driver.H"
 #include "drivers/Quartz/Fl_Quartz_Copy_Surface_Driver.H"
 #include "drivers/Cocoa/Fl_Cocoa_Screen_Driver.H"
@@ -558,7 +559,7 @@ void Fl_Cocoa_Screen_Driver::breakMacEventLoop()
 #endif
 - (BOOL)did_view_resolution_change;
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
-- (void)create_aux_bitmap:(CGContextRef)gc retina:(BOOL)r;
+- (void)create_aux_bitmap:(BOOL)retina;
 - (void)reset_aux_bitmap;
 #endif
 @end
@@ -1587,7 +1588,7 @@ static void drain_dropped_files_list() {
     return;
   }
   NSString *s = (NSString*)[dropped_files_list objectAtIndex:0];
-  char *fname = strdup([s UTF8String]);
+  char *fname = fl_strdup([s UTF8String]);
   [dropped_files_list removeObjectAtIndex:0];
   if ([dropped_files_list count] == 0) {
     [dropped_files_list release];
@@ -2181,11 +2182,12 @@ static FLTextInputContext* fltextinputcontext_instance = nil;
   return NO;
 }
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
-- (void)create_aux_bitmap:(CGContextRef)gc retina:(BOOL)r {
-  aux_bitmap = CGBitmapContextCreate(NULL, CGBitmapContextGetWidth(gc), CGBitmapContextGetHeight(gc),
-                                     CGBitmapContextGetBitsPerComponent(gc), CGBitmapContextGetBytesPerRow(gc),
-                                     CGBitmapContextGetColorSpace(gc), CGBitmapContextGetBitmapInfo(gc));
-  if (r) CGContextScaleCTM(aux_bitmap, 2, 2);
+- (void)create_aux_bitmap:(BOOL)retina {
+  int W = [self frame].size.width, H = [self frame].size.height;
+  if (retina) { W *= 2; H *= 2; }
+  static CGColorSpaceRef cspace = CGColorSpaceCreateDeviceRGB();
+  aux_bitmap = CGBitmapContextCreate(NULL, W, H, 8, 0, cspace, kCGImageAlphaPremultipliedFirst);
+  if (retina) CGContextScaleCTM(aux_bitmap, 2, 2);
 }
 - (void)reset_aux_bitmap {
   CGContextRelease(aux_bitmap);
@@ -2218,9 +2220,6 @@ static FLTextInputContext* fltextinputcontext_instance = nil;
   Fl_Window *window = [cw getFl_Window];
   if (!window) return; // may happen after closing full-screen window
   fl_lock_function();
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
-  CGContextRef destination = views_use_CA ? [[NSGraphicsContext currentContext] CGContext] : NULL;
-#endif
   Fl_Cocoa_Window_Driver *d = Fl_Cocoa_Window_Driver::driver(window);
   if (!through_Fl_X_flush
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
@@ -2242,17 +2241,14 @@ static FLTextInputContext* fltextinputcontext_instance = nil;
     window->clear_damage(FL_DAMAGE_ALL);
   }
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
-  if (destination && !aux_bitmap) [self create_aux_bitmap:destination retina:d->mapped_to_retina()];
+  if (views_use_CA && !aux_bitmap && !window->as_gl_window()) [self create_aux_bitmap:d->mapped_to_retina()];
 #endif
   through_drawRect = YES;
   if (window->damage()) d->Fl_Window_Driver::flush();
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
-  if (destination) {
-    if (CGBitmapContextGetBytesPerRow(aux_bitmap) == CGBitmapContextGetBytesPerRow(destination)) {
-      memcpy(CGBitmapContextGetData(destination), CGBitmapContextGetData(aux_bitmap),
-             CGBitmapContextGetHeight(aux_bitmap) * CGBitmapContextGetBytesPerRow(aux_bitmap));
-    } else {
-      // this condition (unchanged W and H but changed BytesPerRow) occurs with 10.15
+  if (views_use_CA) {
+    CGContextRef destination = [[NSGraphicsContext currentContext] CGContext];
+    if (destination) { // can be NULL with gl_start/gl_finish
       CGImageRef img = CGBitmapContextCreateImage(aux_bitmap);
       CGContextDrawImage(destination, [self frame], img);
       CGImageRelease(img);
@@ -2304,7 +2300,7 @@ static FLTextInputContext* fltextinputcontext_instance = nil;
 }
 - (void)resetCursorRects {
   Fl_Window *w = [(FLWindow*)[self window] getFl_Window];
-  Fl_X *i = Fl_X::i(w);
+  Fl_X *i = (w ? Fl_X::i(w) : NULL);
   if (!i) return;  // fix for STR #3128
   // We have to have at least one cursor rect for invalidateCursorRectsForView
   // to work, hence the "else" clause.
@@ -3369,12 +3365,6 @@ void Fl_Cocoa_Window_Driver::make_current()
     NSGraphicsContext *nsgc =   through_drawRect ? [NSGraphicsContext currentContext] : [NSGraphicsContext graphicsContextWithWindow:fl_window];
     static SEL gc_sel = fl_mac_os_version >= 101000 ? @selector(CGContext) : @selector(graphicsPort);
     gc = (CGContextRef)[nsgc performSelector:gc_sel];
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14
-    if (!gc) { // to support gl_start()/gl_finish()
-      static CGContextRef dummy_gc = CGBitmapContextCreate(NULL, 10, 10, 8, 40, CGColorSpaceCreateDeviceRGB(), kCGImageAlphaPremultipliedFirst);
-      gc = dummy_gc;
-    }
-#endif
   }
   Fl_Graphics_Driver::default_driver().gc(gc);
   CGContextSaveGState(gc); // native context
@@ -3529,7 +3519,7 @@ static int get_plain_text_from_clipboard(int clipboard)
                                                         [data length],
                                                         [found isEqualToString:@"public.utf16-plain-text"] ? kCFStringEncodingUnicode : kCFStringEncodingMacRoman,
                                                         false);
-        aux_c = strdup([auxstring UTF8String]);
+        aux_c = fl_strdup([auxstring UTF8String]);
         [auxstring release];
         len = strlen(aux_c) + 1;
       }
